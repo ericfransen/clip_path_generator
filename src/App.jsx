@@ -365,38 +365,58 @@ export default function App() {
         
         let newWidth = startWidth;
         let newHeight = startHeight;
+        let isLeft = false;
+        let isTop = false;
 
-        if (type === 'uniform') {
-             // Moving diagonally down-left is the natural expansion vector.
-             const delta = (dy - dx) / 2;
-             
-             newWidth = Math.max(50, startWidth + delta * 2);
-             newHeight = Math.max(50, startHeight + delta * 2);
-             
-             setCanvasSize({
-                 width: newWidth,
-                 height: newHeight
-             });
-        } else {
-            newWidth = (type === 'x' || type === 'xy') ? Math.max(50, startWidth + dx) : startWidth;
-            newHeight = (type === 'y' || type === 'xy') ? Math.max(50, startHeight + dy) : startHeight;
+        // Determine resize direction
+        const hasL = type.includes('l');
+        const hasR = type.includes('r');
+        const hasT = type.includes('t');
+        const hasB = type.includes('b');
 
-            setCanvasSize({
-                width: newWidth,
-                height: newHeight
-            });
+        if (hasL) {
+            newWidth = Math.max(50, startWidth - dx);
+            isLeft = true;
+        } else if (hasR) {
+            newWidth = Math.max(50, startWidth + dx);
         }
 
-        if (lockShape && startLayers) {
-            const widthRatio = startWidth / newWidth;
-            const heightRatio = startHeight / newHeight;
+        if (hasT) {
+            newHeight = Math.max(50, startHeight - dy);
+            isTop = true;
+        } else if (hasB) {
+            newHeight = Math.max(50, startHeight + dy);
+        }
 
+        setCanvasSize({
+            width: newWidth,
+            height: newHeight
+        });
+
+        if (lockShape && startLayers) {
             const newLayers = startLayers.map(layer => ({
                 ...layer,
-                points: layer.points.map(p => ({
-                    x: parseFloat((p.x * widthRatio).toFixed(2)),
-                    y: parseFloat((p.y * heightRatio).toFixed(2))
-                }))
+                points: layer.points.map(p => {
+                    // Convert % to pixels based on START dimension
+                    let px = (p.x / 100) * startWidth;
+                    let py = (p.y / 100) * startHeight;
+
+                    // If growing/shrinking from Left/Top, we must shift the points
+                    // by the delta to keep them in the same "World" position relative
+                    // to the moving origin.
+                    if (isLeft) {
+                        px += (newWidth - startWidth);
+                    }
+                    if (isTop) {
+                        py += (newHeight - startHeight);
+                    }
+
+                    // Convert back to % based on NEW dimension
+                    return {
+                        x: parseFloat(((px / newWidth) * 100).toFixed(2)),
+                        y: parseFloat(((py / newHeight) * 100).toFixed(2))
+                    };
+                })
             }));
             setLayers(newLayers);
         }
@@ -848,23 +868,41 @@ ${css}`;
                          title={selectedLayerId ? "Click background to deselect" : "Click to select background"}
                        >
                          {/* Resize Handles */}
+                         {/* Sides */}
                          <div 
                             className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-blue-500/20 transition-colors z-20"
-                            onMouseDown={(e) => handleResizeMouseDown(e, 'x')}
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'r')}
+                         />
+                         <div 
+                            className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-blue-500/20 transition-colors z-20"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'l')}
                          />
                          <div 
                             className="absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize hover:bg-blue-500/20 transition-colors z-20"
-                            onMouseDown={(e) => handleResizeMouseDown(e, 'y')}
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'b')}
                          />
-                                      <div 
-                                         className="absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize bg-gray-300 hover:bg-blue-500 z-30 rounded-tl shadow-sm"
-                                         onMouseDown={(e) => handleResizeMouseDown(e, 'xy')}
-                                      />
-                                      <div 
-                                         className="absolute left-0 bottom-0 w-4 h-4 cursor-nesw-resize bg-gray-400 hover:bg-blue-500 z-30 rounded-tr shadow-sm"
-                                         onMouseDown={(e) => handleResizeMouseDown(e, 'uniform')}
-                                         title="Resize proportionally (Equal Steps)"
-                                      />
+                         <div 
+                            className="absolute left-0 right-0 top-0 h-2 cursor-ns-resize hover:bg-blue-500/20 transition-colors z-20"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 't')}
+                         />
+
+                         {/* Corners */}
+                         <div 
+                            className="absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize bg-gray-300 hover:bg-blue-500 z-30 rounded-tl shadow-sm"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'br')}
+                         />
+                         <div 
+                            className="absolute left-0 bottom-0 w-4 h-4 cursor-nesw-resize bg-gray-400 hover:bg-blue-500 z-30 rounded-tr shadow-sm"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'bl')}
+                         />
+                         <div 
+                            className="absolute left-0 top-0 w-4 h-4 cursor-nwse-resize bg-gray-300 hover:bg-blue-500 z-30 rounded-br shadow-sm"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'tl')}
+                         />
+                         <div 
+                            className="absolute right-0 top-0 w-4 h-4 cursor-nesw-resize bg-gray-400 hover:bg-blue-500 z-30 rounded-bl shadow-sm"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'tr')}
+                         />
                          
                                       {layers.map(layer => {               if (!layer.visible) return null;
                const isSelected = layer.id === selectedLayerId;
