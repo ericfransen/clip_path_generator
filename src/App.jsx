@@ -107,6 +107,12 @@ export default function App() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isDragging, setIsDragging] = useState(false);
   
+  // Ref to access latest layers in callbacks without updating dependencies
+  const layersRef = useRef(layers);
+  useEffect(() => {
+    layersRef.current = layers;
+  }, [layers]);
+  
   // Code Editor States
   const [showAllCss, setShowAllCss] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
@@ -337,9 +343,9 @@ export default function App() {
     if (dragItem.current) {
       dragItem.current = null;
       setIsDragging(false);
-      addToHistory(layers);
+      addToHistory(layersRef.current);
     }
-  }, [addToHistory, layers]);
+  }, [addToHistory]);
 
   useEffect(() => {
     window.addEventListener('mousemove', handleMouseMove);
