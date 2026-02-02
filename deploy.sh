@@ -3,27 +3,24 @@
 # abort on errors
 set -e
 
-# build
+echo "Building project..."
 npm run build
 
-# navigate into the build output directory
+echo "Navigating to dist folder..."
 cd dist
 
-# place .nojekyll to bypass Jekyll processing
+echo "Creating .nojekyll..."
 echo > .nojekyll
 
-# if you are deploying to a custom domain
-# echo 'www.example.com' > CNAME
-
+echo "Initializing git..."
 git init
 git checkout -B gh-pages
 git add -A
 git commit -m 'deploy'
 
-# if you are deploying to https://<USERNAME>.github.io
-# git push -f git@github.com:<USERNAME>/<USERNAME>.github.io.git gh-pages
-
-# if you are deploying to https://<USERNAME>.github.io/<REPO>
+echo "Pushing to gh-pages..."
+# Using the specific repo URL to avoid any ambiguity
 git push -f git@github.com:ericfransen/clip_path_generator.git gh-pages
 
+echo "Deployment complete."
 cd -
