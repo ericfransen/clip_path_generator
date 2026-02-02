@@ -12,7 +12,9 @@ import {
   ChevronUp,
   ChevronDown,
   Check,
-  GripVertical
+  GripVertical,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 // --- Utils & Constants ---
@@ -107,6 +109,7 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isDragging, setIsDragging] = useState(false);
+  const [lockShape, setLockShape] = useState(false);
   
   // Ref to access latest layers in callbacks without updating dependencies
   const layersRef = useRef(layers);
@@ -152,7 +155,8 @@ export default function App() {
         startX: e.clientX, 
         startY: e.clientY, 
         startWidth: canvasSize.width, 
-        startHeight: canvasSize.height 
+        startHeight: canvasSize.height,
+        startLayers: layersRef.current // Capture current layers state
     };
     setIsDragging(true);
   };
@@ -355,24 +359,48 @@ export default function App() {
   const handleMouseMove = useCallback((e) => {
     // Handle Canvas Resizing
     if (resizeItem.current) {
-        const { type, startX, startY, startWidth, startHeight } = resizeItem.current;
+        const { type, startX, startY, startWidth, startHeight, startLayers } = resizeItem.current;
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
         
+        let newWidth = startWidth;
+        let newHeight = startHeight;
+
         if (type === 'uniform') {
              // Moving diagonally down-left is the natural expansion vector.
              const delta = (dy - dx) / 2;
              
+             newWidth = Math.max(50, startWidth + delta * 2);
+             newHeight = Math.max(50, startHeight + delta * 2);
+             
              setCanvasSize({
-                 width: Math.max(50, startWidth + delta * 2),
-                 height: Math.max(50, startHeight + delta * 2)
+                 width: newWidth,
+                 height: newHeight
              });
         } else {
-            setCanvasSize(prev => ({
-                width: (type === 'x' || type === 'xy') ? Math.max(50, startWidth + dx) : prev.width,
-                height: (type === 'y' || type === 'xy') ? Math.max(50, startHeight + dy) : prev.height
-            }));
+            newWidth = (type === 'x' || type === 'xy') ? Math.max(50, startWidth + dx) : startWidth;
+            newHeight = (type === 'y' || type === 'xy') ? Math.max(50, startHeight + dy) : startHeight;
+
+            setCanvasSize({
+                width: newWidth,
+                height: newHeight
+            });
         }
+
+        if (lockShape && startLayers) {
+            const widthRatio = startWidth / newWidth;
+            const heightRatio = startHeight / newHeight;
+
+            const newLayers = startLayers.map(layer => ({
+                ...layer,
+                points: layer.points.map(p => ({
+                    x: parseFloat((p.x * widthRatio).toFixed(2)),
+                    y: parseFloat((p.y * heightRatio).toFixed(2))
+                }))
+            }));
+            setLayers(newLayers);
+        }
+
         return;
     }
 
@@ -393,7 +421,7 @@ export default function App() {
       }
       return l;
     }));
-  }, []);
+  }, [lockShape]);
 
   const handleMouseUp = useCallback(() => {
     if (resizeItem.current) {
@@ -579,6 +607,14 @@ ${css}`;
               className="w-12 bg-transparent text-center focus:outline-none border-b border-gray-300 focus:border-blue-500"
             />
           </div>
+
+          <button
+            onClick={() => setLockShape(!lockShape)}
+            className={`p-1.5 rounded-md border transition-colors ${lockShape ? 'bg-blue-100 border-blue-200 text-blue-600' : 'bg-white border-gray-200 text-gray-400 hover:text-gray-600'}`}
+            title={lockShape ? "Unlock Shape Dimensions" : "Lock Shape Dimensions (Prevent distortion when resizing)"}
+          >
+            {lockShape ? <Lock size={16} /> : <Unlock size={16} />}
+          </button>
           
            <div className="flex items-center gap-2 text-sm bg-gray-100 px-3 py-1.5 rounded-md border border-gray-200">
              <span className="text-gray-500 text-xs uppercase font-bold tracking-wider">BG</span>
