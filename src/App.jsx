@@ -709,18 +709,6 @@ ${css}`;
                 </button>
              )}
            </div>
-
-          <button  
-            onClick={copyToClipboard}
-            className={`
-                flex items-center gap-2 px-4 py-2 rounded-md transition-all text-sm font-medium min-w-[120px] justify-center
-                ${copyFeedback 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-900 text-white hover:bg-black'}
-            `}
-          >
-            {copyFeedback ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy CSS</>}
-          </button>
         </div>
       </header>
 
@@ -1025,6 +1013,18 @@ ${css}`;
                   />
                   <span className="text-[10px] text-gray-600">HTML Wrapper</span>
               </label>
+              
+              <button  
+                onClick={copyToClipboard}
+                className={`
+                    ml-4 flex items-center gap-1.5 px-3 py-1 rounded transition-all text-[10px] font-bold uppercase tracking-wider
+                    ${copyFeedback 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-gray-900 text-white hover:bg-black'}
+                `}
+              >
+                {copyFeedback ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy Output</>}
+              </button>
           </div>
           <span className="text-gray-400">
               {showAllCss ? 'Read-only mode' : (activeLayer ? 'Edit or paste coordinates below' : 'Select a layer to edit')}
