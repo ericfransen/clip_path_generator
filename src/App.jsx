@@ -146,6 +146,7 @@ export default function App() {
   
   const handleResizeMouseDown = (e, type) => {
     e.stopPropagation();
+    e.preventDefault(); // Prevent text selection/native drag
     resizeItem.current = { 
         type, 
         startX: e.clientX, 
@@ -327,6 +328,7 @@ export default function App() {
   // --- Canvas Interaction ---
   const handlePointMouseDown = (e, layerId, pointIndex) => {
     e.stopPropagation(); // Prevent canvas background click
+    e.preventDefault(); // Prevent text selection
     dragItem.current = { layerId, pointIndex };
     setIsDragging(true);
     setSelectedLayerId(layerId);
