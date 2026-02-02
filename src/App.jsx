@@ -465,6 +465,30 @@ export default function App() {
 
     if (!dragItem.current || !canvasRef.current) return;
 
+    if (dragItem.current.type === 'layer') {
+        const { layerId, startX, startY, startPoints } = dragItem.current;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        const rect = canvasRef.current.getBoundingClientRect();
+        
+        // Convert px delta to % delta
+        const dxPerc = (dx / rect.width) * 100;
+        const dyPerc = (dy / rect.height) * 100;
+
+        setLayers(prev => prev.map(l => {
+            if (l.id === layerId) {
+                const newPoints = startPoints.map(p => ({
+                    x: parseFloat((p.x + dxPerc).toFixed(2)),
+                    y: parseFloat((p.y + dyPerc).toFixed(2))
+                }));
+                return { ...l, points: newPoints };
+            }
+            return l;
+        }));
+        return;
+    }
+
+    // Point Dragging (dragItem.current.type === 'point')
     const rect = canvasRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
@@ -945,19 +969,41 @@ ${css}`;
                return (
                  <div key={layer.id} className="absolute inset-0 pointer-events-none">
                    <div 
-                    className="w-full h-full transition-opacity"
+                    className={`w-full h-full transition-opacity ${isSelected ? 'cursor-move pointer-events-auto' : 'pointer-events-auto cursor-pointer'}`}
+                    onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setSelectedLayerId(layer.id);
+                        if (isSelected) {
+                             dragItem.current = { 
+                                 type: 'layer', 
+                                 layerId: layer.id, 
+                                 startX: e.clientX, 
+                                 startY: e.clientY,
+                                 startPoints: layer.points 
+                             };
+                             setIsDragging(true);
+                        }
+                    }}
                     style={{ 
                       backgroundColor: rgbaColor,
                       clipPath: path,
                       WebkitClipPath: path,
-                      // Removed opacity dimming to allow true transparency editing
                     }}
                    />
 
                    {isSelected && layer.points.map((p, i) => (
                      <div
                       key={i}
-                      onMouseDown={(e) => handlePointMouseDown(e, layer.id, i)}
+                      onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          dragItem.current = { type: 'point', layerId: layer.id, pointIndex: i };
+                          setIsDragging(true);
+                          setSelectedLayerId(layer.id);
+                          setSelectedPointIndex(i);
+                          setManualCode(null);
+                      }}
                       className={`
                         absolute w-5 h-5 rounded-full border-2 shadow-md cursor-move pointer-events-auto transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center hover:scale-110 transition-transform z-10
                         ${selectedPointIndex === i ? 'ring-2 ring-blue-500 scale-110 z-20' : 'border-white'}
