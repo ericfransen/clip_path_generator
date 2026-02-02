@@ -309,10 +309,20 @@ export default function App() {
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
         
-        setCanvasSize(prev => ({
-            width: (type === 'x' || type === 'xy') ? Math.max(50, startWidth + dx) : prev.width,
-            height: (type === 'y' || type === 'xy') ? Math.max(50, startHeight + dy) : prev.height
-        }));
+        if (type === 'uniform') {
+             // Moving diagonally down-left is the natural expansion vector.
+             const delta = (dy - dx) / 2;
+             
+             setCanvasSize({
+                 width: Math.max(50, startWidth + delta * 2),
+                 height: Math.max(50, startHeight + delta * 2)
+             });
+        } else {
+            setCanvasSize(prev => ({
+                width: (type === 'x' || type === 'xy') ? Math.max(50, startWidth + dx) : prev.width,
+                height: (type === 'y' || type === 'xy') ? Math.max(50, startHeight + dy) : prev.height
+            }));
+        }
         return;
     }
 
@@ -722,12 +732,17 @@ ${css}`;
                             className="absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize hover:bg-blue-500/20 transition-colors z-20"
                             onMouseDown={(e) => handleResizeMouseDown(e, 'y')}
                          />
-                         <div 
-                            className="absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize bg-gray-300 hover:bg-blue-500 z-30 rounded-tl shadow-sm"
-                            onMouseDown={(e) => handleResizeMouseDown(e, 'xy')}
-                         />
-            
-                         {layers.map(layer => {               if (!layer.visible) return null;
+                                      <div 
+                                         className="absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize bg-gray-300 hover:bg-blue-500 z-30 rounded-tl shadow-sm"
+                                         onMouseDown={(e) => handleResizeMouseDown(e, 'xy')}
+                                      />
+                                      <div 
+                                         className="absolute left-0 bottom-0 w-4 h-4 cursor-nesw-resize bg-gray-400 hover:bg-blue-500 z-30 rounded-tr shadow-sm"
+                                         onMouseDown={(e) => handleResizeMouseDown(e, 'uniform')}
+                                         title="Resize proportionally (Equal Steps)"
+                                      />
+                         
+                                      {layers.map(layer => {               if (!layer.visible) return null;
                const isSelected = layer.id === selectedLayerId;
                const path = `polygon(${pointsToCss(layer.points)})`;
                const rgbaColor = hexToRgba(layer.color, layer.opacity !== undefined ? layer.opacity : 1);
