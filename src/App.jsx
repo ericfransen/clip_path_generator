@@ -199,6 +199,31 @@ export default function App() {
       updateLayers(newLayers, true);
     }
   };
+
+  const addPoint = () => {
+    if (!activeLayer) return;
+
+    // Default to adding a point between the first and last point (closing the loop visually)
+    // or just offset from the first point.
+    const p1 = activeLayer.points[0] || { x: 50, y: 50 };
+    const p2 = activeLayer.points[1] || { x: 60, y: 60 };
+
+    // Calculate midpoint
+    const newPoint = {
+      x: Math.round((p1.x + p2.x) / 2),
+      y: Math.round((p1.y + p2.y) / 2)
+    };
+
+    const newPoints = [
+      newPoint,
+      ...activeLayer.points
+    ];
+
+    const newLayers = layers.map(l => 
+      l.id === activeLayer.id ? { ...l, points: newPoints } : l
+    );
+    updateLayers(newLayers, true);
+  };
   
   // Layer DnD Sorting
   const handleSort = () => {
@@ -582,6 +607,15 @@ ${css}`;
                     <span className="text-gray-400 w-8 text-right">
                         {Math.round((activeLayer.opacity !== undefined ? activeLayer.opacity : 1) * 100)}%
                     </span>
+                  </div>
+                  
+                  <div className="pt-2 border-t border-gray-200 mt-1">
+                    <button 
+                        onClick={addPoint}
+                        className="w-full flex items-center justify-center gap-2 py-1.5 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-700 transition-colors shadow-sm"
+                    >
+                        <Plus size={14} /> Add Coordinate Point
+                    </button>
                   </div>
                 </div>
               ) : (
