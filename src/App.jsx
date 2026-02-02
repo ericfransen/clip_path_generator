@@ -114,6 +114,7 @@ export default function App() {
   const [isEditingCode, setIsEditingCode] = useState(false);
 
   const dragItem = useRef(null); // For dragging points on canvas
+  const resizeItem = useRef(null); // For resizing canvas { type: 'x' | 'y' | 'xy', startX, startY, startWidth, startHeight }
   const canvasRef = useRef(null);
   
   // DnD for Layers
@@ -125,10 +126,27 @@ export default function App() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setBgImage(reader.result);
+        const img = new Image();
+        img.onload = () => {
+             setCanvasSize({ width: img.naturalWidth, height: img.naturalHeight });
+             setBgImage(reader.result);
+        };
+        img.src = reader.result;
       };
       reader.readAsDataURL(file);
     }
+  };
+  
+  const handleResizeMouseDown = (e, type) => {
+    e.stopPropagation();
+    resizeItem.current = { 
+        type, 
+        startX: e.clientX, 
+        startY: e.clientY, 
+        startWidth: canvasSize.width, 
+        startHeight: canvasSize.height 
+    };
+    setIsDragging(true);
   };
 
   // --- History Management ---
@@ -279,6 +297,19 @@ export default function App() {
   };
 
   const handleMouseMove = useCallback((e) => {
+    // Handle Canvas Resizing
+    if (resizeItem.current) {
+        const { type, startX, startY, startWidth, startHeight } = resizeItem.current;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        
+        setCanvasSize(prev => ({
+            width: (type === 'x' || type === 'xy') ? Math.max(50, startWidth + dx) : prev.width,
+            height: (type === 'y' || type === 'xy') ? Math.max(50, startHeight + dy) : prev.height
+        }));
+        return;
+    }
+
     if (!dragItem.current || !canvasRef.current) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
@@ -299,6 +330,10 @@ export default function App() {
   }, []);
 
   const handleMouseUp = useCallback(() => {
+    if (resizeItem.current) {
+        resizeItem.current = null;
+        setIsDragging(false);
+    }
     if (dragItem.current) {
       dragItem.current = null;
       setIsDragging(false);
@@ -670,10 +705,23 @@ ${css}`;
               backgroundImage: bgImage ? `url(${bgImage})` : 'none',
               cursor: selectedLayerId ? 'default' : 'pointer'
             }}
-            title={selectedLayerId ? "Click background to deselect" : "Click to select background"}
-           >
-             {layers.map(layer => {
-               if (!layer.visible) return null;
+                         title={selectedLayerId ? "Click background to deselect" : "Click to select background"}
+                       >
+                         {/* Resize Handles */}
+                         <div 
+                            className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-blue-500/20 transition-colors z-20"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'x')}
+                         />
+                         <div 
+                            className="absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize hover:bg-blue-500/20 transition-colors z-20"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'y')}
+                         />
+                         <div 
+                            className="absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize bg-gray-300 hover:bg-blue-500 z-30 rounded-tl shadow-sm"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'xy')}
+                         />
+            
+                         {layers.map(layer => {               if (!layer.visible) return null;
                const isSelected = layer.id === selectedLayerId;
                const path = `polygon(${pointsToCss(layer.points)})`;
                const rgbaColor = hexToRgba(layer.color, layer.opacity !== undefined ? layer.opacity : 1);
