@@ -368,24 +368,58 @@ export default function App() {
         let isLeft = false;
         let isTop = false;
 
-        // Determine resize direction
-        const hasL = type.includes('l');
-        const hasR = type.includes('r');
-        const hasT = type.includes('t');
-        const hasB = type.includes('b');
+        // Check if proportional resize (Bottom-Left or Top-Right)
+        const isProportional = type === 'bl' || type === 'tr';
 
-        if (hasL) {
-            newWidth = Math.max(50, startWidth - dx);
-            isLeft = true;
-        } else if (hasR) {
-            newWidth = Math.max(50, startWidth + dx);
-        }
+        if (isProportional) {
+            const aspectRatio = startWidth / startHeight;
 
-        if (hasT) {
-            newHeight = Math.max(50, startHeight - dy);
-            isTop = true;
-        } else if (hasB) {
-            newHeight = Math.max(50, startHeight + dy);
+            if (type === 'tr') {
+                // Dragging Top-Right: Width grows (+dx), Height grows (-dy)
+                // Use average scale factor for smoothness
+                const sW = (startWidth + dx) / startWidth;
+                const sH = (startHeight - dy) / startHeight;
+                const s = (sW + sH) / 2;
+
+                newWidth = Math.max(50, startWidth * s);
+                newHeight = Math.max(50, startHeight * s); // or newWidth / aspectRatio
+
+                // Enforce Aspect Ratio strictly based on Width (or average)
+                // To be exact:
+                newHeight = newWidth / aspectRatio;
+
+                isTop = true; // Top moves
+            } else if (type === 'bl') {
+                // Dragging Bottom-Left: Width grows (-dx), Height grows (+dy)
+                const sW = (startWidth - dx) / startWidth;
+                const sH = (startHeight + dy) / startHeight;
+                const s = (sW + sH) / 2;
+
+                newWidth = Math.max(50, startWidth * s);
+                newHeight = newWidth / aspectRatio;
+
+                isLeft = true; // Left moves
+            }
+        } else {
+            // Free-form resizing logic (Sides and other corners)
+            const hasL = type.includes('l');
+            const hasR = type.includes('r');
+            const hasT = type.includes('t');
+            const hasB = type.includes('b');
+
+            if (hasL) {
+                newWidth = Math.max(50, startWidth - dx);
+                isLeft = true;
+            } else if (hasR) {
+                newWidth = Math.max(50, startWidth + dx);
+            }
+
+            if (hasT) {
+                newHeight = Math.max(50, startHeight - dy);
+                isTop = true;
+            } else if (hasB) {
+                newHeight = Math.max(50, startHeight + dy);
+            }
         }
 
         setCanvasSize({
