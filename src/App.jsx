@@ -100,6 +100,7 @@ export default function App() {
     { id: '1', name: 'Base Shape', visible: true, color: '#3b82f6', opacity: 1, points: generatePolygon(5) }
   ]);
   const [selectedLayerId, setSelectedLayerId] = useState('1');
+  const [selectedPointIndex, setSelectedPointIndex] = useState(null);
   const [canvasSize, setCanvasSize] = useState(DEFAULT_SIZE);
   const [bgColor, setBgColor] = useState('#e5e7eb');
   const [bgImage, setBgImage] = useState(null);
@@ -153,6 +154,50 @@ export default function App() {
         startHeight: canvasSize.height 
     };
     setIsDragging(true);
+  };
+
+  // --- Point Management ---
+  const deletePoint = () => {
+    if (selectedPointIndex === null || !activeLayer) return;
+    if (activeLayer.points.length <= 3) return; // Minimum 3 points
+
+    const newPoints = activeLayer.points.filter((_, i) => i !== selectedPointIndex);
+    const newLayers = layers.map(l => l.id === activeLayer.id ? { ...l, points: newPoints } : l);
+    updateLayers(newLayers, true);
+    setSelectedPointIndex(null);
+  };
+
+  const addPointBefore = () => {
+    if (selectedPointIndex === null || !activeLayer) return;
+    const prevIndex = (selectedPointIndex - 1 + activeLayer.points.length) % activeLayer.points.length;
+    const curr = activeLayer.points[selectedPointIndex];
+    const prev = activeLayer.points[prevIndex];
+    
+    // Midpoint
+    const newPoint = { x: parseFloat(((curr.x + prev.x) / 2).toFixed(2)), y: parseFloat(((curr.y + prev.y) / 2).toFixed(2)) };
+    
+    const newPoints = [...activeLayer.points];
+    newPoints.splice(selectedPointIndex, 0, newPoint);
+    
+    const newLayers = layers.map(l => l.id === activeLayer.id ? { ...l, points: newPoints } : l);
+    updateLayers(newLayers, true);
+    setSelectedPointIndex(selectedPointIndex + 1); // Shift selection to keep it on the same physical node
+  };
+
+  const addPointAfter = () => {
+    if (selectedPointIndex === null || !activeLayer) return;
+    const nextIndex = (selectedPointIndex + 1) % activeLayer.points.length;
+    const curr = activeLayer.points[selectedPointIndex];
+    const next = activeLayer.points[nextIndex];
+    
+    // Midpoint
+    const newPoint = { x: parseFloat(((curr.x + next.x) / 2).toFixed(2)), y: parseFloat(((curr.y + next.y) / 2).toFixed(2)) };
+    
+    const newPoints = [...activeLayer.points];
+    newPoints.splice(selectedPointIndex + 1, 0, newPoint);
+    
+    const newLayers = layers.map(l => l.id === activeLayer.id ? { ...l, points: newPoints } : l);
+    updateLayers(newLayers, true);
   };
 
   // --- History Management ---
@@ -285,12 +330,14 @@ export default function App() {
     dragItem.current = { layerId, pointIndex };
     setIsDragging(true);
     setSelectedLayerId(layerId);
+    setSelectedPointIndex(pointIndex); // Select the point
     setManualCode(null);
   };
 
   const handleCanvasMouseDown = (e) => {
     // If clicking background, deselect
     setSelectedLayerId(null);
+    setSelectedPointIndex(null); // Deselect point
     setManualCode(null);
   };
   
@@ -298,6 +345,7 @@ export default function App() {
     // Deselect if clicking whitespace in sidebar
     if (e.target === e.currentTarget) {
         setSelectedLayerId(null);
+        setSelectedPointIndex(null);
         setManualCode(null);
     }
   };
@@ -490,7 +538,7 @@ ${css}`;
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
             <Settings size={18} />
           </div>
-          <h1 className="font-bold text-lg tracking-tight">ClipPath Pro</h1>
+          <h1 className="font-bold text-lg tracking-tight">ClipPath Generator</h1>
         </div>
 
         <div className="flex items-center gap-4">
@@ -691,6 +739,38 @@ ${css}`;
                     </span>
                   </div>
                   
+                  {/* Selected Point Options */}
+                  {selectedPointIndex !== null && (
+                      <div className="pt-2 border-t border-gray-200 mt-1">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                              Selected Point ({selectedPointIndex + 1})
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 mb-2">
+                              <button 
+                                  onClick={addPointBefore}
+                                  className="px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 text-gray-600 text-[10px] flex items-center justify-center gap-1"
+                                  title="Add point before selected"
+                              >
+                                  <Plus size={10} /> Before
+                              </button>
+                              <button 
+                                  onClick={addPointAfter}
+                                  className="px-2 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 text-gray-600 text-[10px] flex items-center justify-center gap-1"
+                                  title="Add point after selected"
+                              >
+                                  <Plus size={10} /> After
+                              </button>
+                          </div>
+                          <button 
+                              onClick={deletePoint}
+                              disabled={activeLayer.points.length <= 3}
+                              className="w-full flex items-center justify-center gap-2 py-1 bg-red-50 border border-red-100 rounded hover:bg-red-100 text-red-600 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                              <Trash2 size={12} /> Delete Point
+                          </button>
+                      </div>
+                  )}
+
                   <div className="pt-2 border-t border-gray-200 mt-1">
                     <button 
                         onClick={addPoint}
@@ -763,7 +843,10 @@ ${css}`;
                      <div
                       key={i}
                       onMouseDown={(e) => handlePointMouseDown(e, layer.id, i)}
-                      className="absolute w-5 h-5 rounded-full border-2 border-white shadow-md cursor-move pointer-events-auto transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center hover:scale-110 transition-transform z-10"
+                      className={`
+                        absolute w-5 h-5 rounded-full border-2 shadow-md cursor-move pointer-events-auto transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center hover:scale-110 transition-transform z-10
+                        ${selectedPointIndex === i ? 'ring-2 ring-blue-500 scale-110 z-20' : 'border-white'}
+                      `}
                       style={{ 
                         left: `${p.x}%`, 
                         top: `${p.y}%`,
