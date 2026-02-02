@@ -6,7 +6,21 @@ Check out a live demo here:
 
 [CLIP PATH GENERATOR](https://ericfransen.github.io/clip_path_generator/)
 
-## 🚀 Quick Start
+## Key Features
+
+- **Multi-Layer Support:** Create, rename, reorder, and toggle visibility for multiple overlapping clip-paths.
+- **Image Tracing:** Upload a background image to trace precise paths over. The canvas automatically adjusts to the image's natural dimensions.
+- **Interactive Editor:**
+    - Drag coordinates to move them.
+    - Drag canvas edges or corners to resize (including a proportional resize handle in the bottom-left and top-right).
+    - Lock clip-path shapes to resize canvas without shape distortion.
+- **Point Precision:** Select individual nodes to add new points before/after or delete them.
+- **Real-time CSS:** Generates standard and `-webkit-` prefixed CSS instantly.
+- **Real-time HTML:** Generates div wrapper for canvas dimensions for easy portability.
+- **Smart History:** Full Undo/Redo support for all actions.
+- **Live Code Editing:** Paste `polygon()` coordinates directly into the output box to update the shapes visually.
+
+## Quick Start
 
 1. **Install dependencies:**
    ```bash
@@ -28,19 +42,7 @@ Check out a live demo here:
    npm run preview
    ```
 
-## ✨ Key Features
-
-- **Multi-Layer Support:** Create, rename, reorder, and toggle visibility for multiple overlapping clip-paths.
-- **Image Tracing:** Upload a background image to trace precise paths over. The canvas automatically adjusts to the image's natural dimensions.
-- **Interactive Editor:** 
-    - Drag coordinates to move them.
-    - Drag canvas edges or corners to resize (including a proportional resize handle in the bottom-left).
-- **Point Precision:** Select individual nodes to add new points before/after or delete them.
-- **Real-time CSS:** Generates standard and `-webkit-` prefixed CSS instantly.
-- **Smart History:** Full Undo/Redo support for all actions.
-- **Live Code Editing:** Paste `polygon()` coordinates directly into the output box to update the shapes visually.
-
-## 🛠 Tech Stack
+## Tech Stack
 
 - **Framework:** React 18
 - **Build Tool:** Vite
