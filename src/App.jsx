@@ -66,6 +66,10 @@ const pointsToCss = (points) => {
 
 // Parse CSS string back to points array. Handles % and px (converts px to %)
 const cssToPoints = (cssString, canvasWidth, canvasHeight) => {
+  // Try to extract only the part inside polygon(...) to avoid picking up width/height/etc
+  const polygonMatch = /polygon\(([^)]+)\)/i.exec(cssString);
+  const targetString = polygonMatch ? polygonMatch[1] : cssString;
+
   // Regex matches: number (group 1) + optional unit (group 2), whitespace, number (group 3) + optional unit (group 4)
   const regex = /(-?\d*\.?\d+)(%|px)?\s+(-?\d*\.?\d+)(%|px)?/gi;
   const points = [];
@@ -75,7 +79,7 @@ const cssToPoints = (cssString, canvasWidth, canvasHeight) => {
   const w = canvasWidth || 1;
   const h = canvasHeight || 1;
 
-  while ((match = regex.exec(cssString)) !== null) {
+  while ((match = regex.exec(targetString)) !== null) {
     let xVal = parseFloat(match[1]);
     const xUnit = match[2] ? match[2].toLowerCase() : '%'; // Default to %
     
@@ -119,6 +123,7 @@ export default function App() {
   
   // Code Editor States
   const [showAllCss, setShowAllCss] = useState(false);
+  const [showHtml, setShowHtml] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [manualCode, setManualCode] = useState(null); // Local state for text editing
   const [isEditingCode, setIsEditingCode] = useState(false);
@@ -381,12 +386,12 @@ export default function App() {
                 const sH = (startHeight - dy) / startHeight;
                 const s = (sW + sH) / 2;
 
-                newWidth = Math.max(50, startWidth * s);
-                newHeight = Math.max(50, startHeight * s); // or newWidth / aspectRatio
+                newWidth = Math.round(Math.max(50, startWidth * s));
+                newHeight = Math.round(Math.max(50, startHeight * s)); // or newWidth / aspectRatio
 
                 // Enforce Aspect Ratio strictly based on Width (or average)
                 // To be exact:
-                newHeight = newWidth / aspectRatio;
+                newHeight = Math.round(newWidth / aspectRatio);
 
                 isTop = true; // Top moves
             } else if (type === 'bl') {
@@ -395,8 +400,8 @@ export default function App() {
                 const sH = (startHeight + dy) / startHeight;
                 const s = (sW + sH) / 2;
 
-                newWidth = Math.max(50, startWidth * s);
-                newHeight = newWidth / aspectRatio;
+                newWidth = Math.round(Math.max(50, startWidth * s));
+                newHeight = Math.round(newWidth / aspectRatio);
 
                 isLeft = true; // Left moves
             }
@@ -408,17 +413,17 @@ export default function App() {
             const hasB = type.includes('b');
 
             if (hasL) {
-                newWidth = Math.max(50, startWidth - dx);
+                newWidth = Math.round(Math.max(50, startWidth - dx));
                 isLeft = true;
             } else if (hasR) {
-                newWidth = Math.max(50, startWidth + dx);
+                newWidth = Math.round(Math.max(50, startWidth + dx));
             }
 
             if (hasT) {
-                newHeight = Math.max(50, startHeight - dy);
+                newHeight = Math.round(Math.max(50, startHeight - dy));
                 isTop = true;
             } else if (hasB) {
-                newHeight = Math.max(50, startHeight + dy);
+                newHeight = Math.round(Math.max(50, startHeight + dy));
             }
         }
 
@@ -511,6 +516,12 @@ export default function App() {
         const path = `polygon(${pointsToCss(layer.points)})`;
         const color = hexToRgba(layer.color, layer.opacity !== undefined ? layer.opacity : 1);
         
+        if (showHtml) {
+            let style = `width: ${canvasSize.width}px; height: ${canvasSize.height}px; background-color: ${color}; clip-path: ${path};`;
+            if (includePrefixes) style += ` -webkit-clip-path: ${path};`;
+            return `<div style="${style}"></div>`;
+        }
+
         let output = `background-color: ${color};
 clip-path: ${path};`;
         if (includePrefixes) {
@@ -533,7 +544,7 @@ ${css}`;
       return formatLayer(activeLayer);
     }
     return '';
-  }, [layers, activeLayer, showAllCss]);
+  }, [layers, activeLayer, showAllCss, showHtml, canvasSize]);
 
   // Sync manualCode with generated output if not editing
   useEffect(() => {
@@ -651,14 +662,14 @@ ${css}`;
               type="number" 
               value={canvasSize.width}
               onChange={(e) => setCanvasSize(prev => ({ ...prev, width: Number(e.target.value) }))}
-              className="w-12 bg-transparent text-center focus:outline-none border-b border-gray-300 focus:border-blue-500"
+              className="w-14 bg-transparent text-center focus:outline-none border-b border-gray-300 focus:border-blue-500"
             />
             <span className="text-gray-400">x</span>
             <input 
               type="number" 
               value={canvasSize.height}
               onChange={(e) => setCanvasSize(prev => ({ ...prev, height: Number(e.target.value) }))}
-              className="w-12 bg-transparent text-center focus:outline-none border-b border-gray-300 focus:border-blue-500"
+              className="w-14 bg-transparent text-center focus:outline-none border-b border-gray-300 focus:border-blue-500"
             />
           </div>
 
@@ -1004,6 +1015,15 @@ ${css}`;
                       className="rounded text-blue-600 focus:ring-blue-500 h-3 w-3"
                   />
                   <span className="text-[10px] text-gray-600">Show All Layers</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer ml-4 bg-white px-2 py-0.5 rounded border border-gray-300 hover:border-blue-400 select-none">
+                  <input 
+                      type="checkbox" 
+                      checked={showHtml} 
+                      onChange={(e) => setShowHtml(e.target.checked)}
+                      className="rounded text-blue-600 focus:ring-blue-500 h-3 w-3"
+                  />
+                  <span className="text-[10px] text-gray-600">HTML Wrapper</span>
               </label>
           </div>
           <span className="text-gray-400">
