@@ -1,6 +1,10 @@
-# ClipPath Pro
+# ClipPath Generator
 
 An interactive, multi-layer CSS `clip-path` generator designed for precision tracing and complex shape creation.
+
+Check out a live demo here:
+
+[CLIP PATH GENERATOR](https://ericfransen.github.io/clip_path_generator/)
 
 ## 🚀 Quick Start
 
