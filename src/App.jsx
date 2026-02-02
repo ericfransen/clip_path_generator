@@ -645,10 +645,16 @@ ${css}`;
               <div 
                 key={layer.id}
                 draggable
-                onDragStart={() => (dragLayerItem.current = index)}
+                onDragStart={(e) => {
+                    dragLayerItem.current = index;
+                    e.dataTransfer.effectAllowed = 'move';
+                }}
                 onDragEnter={() => (dragOverLayerItem.current = index)}
                 onDragEnd={handleSort}
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                }}
                 onClick={(e) => {
                     e.stopPropagation(); // Stop propagation to allow whitespace deselect
                     setSelectedLayerId(layer.id);
