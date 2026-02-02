@@ -102,6 +102,7 @@ export default function App() {
   const [selectedLayerId, setSelectedLayerId] = useState('1');
   const [canvasSize, setCanvasSize] = useState(DEFAULT_SIZE);
   const [bgColor, setBgColor] = useState('#e5e7eb');
+  const [bgImage, setBgImage] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isDragging, setIsDragging] = useState(false);
@@ -118,6 +119,17 @@ export default function App() {
   // DnD for Layers
   const dragLayerItem = useRef(null);
   const dragOverLayerItem = useRef(null);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBgImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // --- History Management ---
   const addToHistory = useCallback((newLayers) => {
@@ -475,9 +487,28 @@ ${css}`;
               onChange={(e) => setBgColor(e.target.value)}
               className="w-6 h-6 rounded cursor-pointer border-none bg-transparent"
              />
+             <div className="w-px h-4 bg-gray-300 mx-1"></div>
+             <label className="cursor-pointer hover:text-blue-600 relative group">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handleImageUpload}
+                />
+                <span className="text-xs font-bold text-gray-500 group-hover:text-blue-600 uppercase">Img</span>
+             </label>
+             {bgImage && (
+                <button 
+                  onClick={() => setBgImage(null)}
+                  className="ml-1 text-gray-400 hover:text-red-500"
+                  title="Remove Image"
+                >
+                  <Trash2 size={12} />
+                </button>
+             )}
            </div>
 
-          <button 
+          <button  
             onClick={copyToClipboard}
             className={`
                 flex items-center gap-2 px-4 py-2 rounded-md transition-all text-sm font-medium min-w-[120px] justify-center
@@ -629,13 +660,14 @@ ${css}`;
         {/* --- Center Stage (Canvas) --- */}
         <main className="flex-1 flex items-center justify-center bg-dots overflow-auto relative p-8">
            <div 
-            className="shadow-xl relative transition-all duration-300 ease-out bg-white"
+            className="shadow-xl relative transition-all duration-300 ease-out bg-white bg-cover bg-center bg-no-repeat"
             ref={canvasRef}
             onMouseDown={handleCanvasMouseDown}
             style={{ 
               width: canvasSize.width, 
               height: canvasSize.height,
               backgroundColor: bgColor,
+              backgroundImage: bgImage ? `url(${bgImage})` : 'none',
               cursor: selectedLayerId ? 'default' : 'pointer'
             }}
             title={selectedLayerId ? "Click background to deselect" : "Click to select background"}
