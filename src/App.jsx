@@ -146,6 +146,7 @@ export default function App() {
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [manualCode, setManualCode] = useState(null); // Local state for text editing
   const [isEditingCode, setIsEditingCode] = useState(false);
+  const [generatedCss, setGeneratedCss] = useState(''); // Memoized/Throttled CSS output
 
   const dragItem = useRef(null); // For dragging points on canvas
   const resizeItem = useRef(null); // For resizing canvas { type: 'x' | 'y' | 'xy', startX, startY, startWidth, startHeight }
@@ -690,14 +691,21 @@ ${css}`;
       addToHistory(layers);
   }
 
+  // Update generatedCss when layers change, but NOT while dragging to save performance
+  useEffect(() => {
+    if (!isDragging) {
+      setGeneratedCss(generateOutput(false));
+    }
+  }, [generateOutput, isDragging]);
+
   const handleCodeFocus = () => {
       setIsEditingCode(true);
       // When focusing, prime with the CURRENT display value (no prefix)
-      setManualCode(generateOutput(false)); 
+      setManualCode(generatedCss); 
   }
 
   // Calculate the value to display in the textarea
-  const displayValue = (isEditingCode && manualCode !== null) ? manualCode : generateOutput(false);
+  const displayValue = (isEditingCode && manualCode !== null) ? manualCode : generatedCss;
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 text-gray-800 font-sans">
