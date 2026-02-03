@@ -46,6 +46,25 @@ const hexToRgba = (hex, alpha) => {
   return `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${alpha})`;
 };
 
+// Helper to convert RGBA/RGB string to Hex + Opacity
+const rgbaToHexOpacity = (colorStr) => {
+  if (!colorStr) return { color: '#3b82f6', opacity: 1 };
+  // If already hex
+  if (colorStr.trim().startsWith('#')) {
+      return { color: colorStr.trim(), opacity: 1 };
+  }
+  
+  const result = /rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\)/i.exec(colorStr);
+  if (!result) return { color: '#000000', opacity: 1 };
+  
+  const r = parseInt(result[1]).toString(16).padStart(2, '0');
+  const g = parseInt(result[2]).toString(16).padStart(2, '0');
+  const b = parseInt(result[3]).toString(16).padStart(2, '0');
+  const a = result[4] !== undefined ? parseFloat(result[4]) : 1;
+
+  return { color: `#${r}${g}${b}`, opacity: a };
+};
+
 // Generate a random polygon
 const generatePolygon = (pointCount = 3) => {
   const points = [];
@@ -616,11 +635,43 @@ ${css}`;
   };
 
   const handleCodeChange = (e) => {
-    if (showAllCss) return; 
-    
     const newVal = e.target.value;
     setManualCode(newVal); 
 
+    if (showAllCss) {
+        // Multi-layer parsing
+        // Regex explanation:
+        // 1. Optional comment for name: (?:\/\*\s*(?<name>.+?)\s*\*\/)?
+        // 2. Loose matching for properties: We look for blocks of text separated by newlines or just sequentially.
+        //    Actually, simplest is to iterate through the string finding patterns of:
+        //    (background-color: ...;)? ... clip-path: polygon(...);
+        
+        const layerMatches = [...newVal.matchAll(/(?:\/\*\s*(?<name>.+?)\s*\*\/)?(?:[\s\S]*?)background-color:\s*(?<color>[^;]+);(?:[\s\S]*?)clip-path:\s*polygon\((?<points>[^)]+)\)/gi)];
+        
+        if (layerMatches.length > 0) {
+             const newLayers = layerMatches.map((match, index) => {
+                 const { name, color, points } = match.groups;
+                 const parsedColor = rgbaToHexOpacity(color.trim());
+                 const parsedPoints = cssToPoints(points, canvasSize.width, canvasSize.height);
+                 
+                 return {
+                     id: Date.now().toString() + index,
+                     name: name ? name.trim() : `Layer ${index + 1}`,
+                     visible: true,
+                     color: parsedColor.color,
+                     opacity: parsedColor.opacity,
+                     points: parsedPoints
+                 };
+             });
+             
+             if (newLayers.length > 0) {
+                 setLayers(newLayers);
+                 setSelectedLayerId(newLayers[0].id);
+             }
+        }
+        return;
+    }
+    
     const parsedPoints = cssToPoints(newVal, canvasSize.width, canvasSize.height);
     
     if (parsedPoints.length >= 3 && activeLayer) {
@@ -1112,12 +1163,12 @@ ${css}`;
                 `}
                 style={{ fontFamily: 'monospace' }}
                 value={!activeLayer && !showAllCss ? "Select a layer to view or edit CSS" : displayValue}
-                readOnly={showAllCss || !activeLayer}
+                readOnly={!showAllCss && !activeLayer}
                 onChange={handleCodeChange}
                 onFocus={handleCodeFocus}
                 onBlur={handleCodeBlur}
                 spellCheck="false"
-                placeholder={activeLayer ? "Paste clip-path code here..." : ""}
+                placeholder={showAllCss ? "Paste multiple layers here..." : (activeLayer ? "Paste clip-path code here..." : "")}
               />
            </div>
         </div>
